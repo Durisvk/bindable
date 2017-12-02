@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/Guards/private.ts"],"names":[],"mappings":";;AAAA,mCAA4B;AAE5B,kBAAe,eAAK,CAAC,GAAG,EAAE,CAAC,KAAK,CAAC,CAAC","file":"private.js","sourcesContent":["import guard from \"./guard\";\n\nexport default guard(() => false);"]}

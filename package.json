@@ -1,0 +1,30 @@
+{
+  "name": "ws-bindable",
+  "version": "0.0.1",
+  "description": "Bindable properties between server-client using WebSockets",
+  "main": "index.js",
+  "scripts": {
+    "test": "gulp dev",
+    "testonly": "gulp test"
+  },
+  "author": "Juraj Carnogursky",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "lodash": "^4.17.4",
+    "ws": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.0.6",
+    "@types/lodash": "^4.14.85",
+    "@types/mocha": "^2.2.44",
+    "@types/ws": "^3.2.0",
+    "chai": "^4.1.2",
+    "gulp": "^3.9.1",
+    "gulp-mocha": "^4.3.1",
+    "gulp-sourcemaps": "^2.6.1",
+    "gulp-typescript": "^3.2.3",
+    "mocha": "^4.0.1",
+    "ts-node": "^3.3.0",
+    "typescript": "^2.6.2"
+  }
+}
