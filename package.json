@@ -4,8 +4,8 @@
   "description": "Bindable properties between server-client using WebSockets",
   "main": "index.js",
   "scripts": {
-    "test": "gulp dev",
-    "testonly": "gulp test"
+    "test": "gulp test",
+    "build": "gulp dev"
   },
   "author": "Juraj Carnogursky",
   "license": "UNLICENSED",
