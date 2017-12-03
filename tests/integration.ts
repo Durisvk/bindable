@@ -126,7 +126,7 @@ describe('Integration tests', () => {
         })
         .then(ws => {
             model.counter++;
-            model.obj.counter++;
+            model.private.counter++;
         })
         .catch(done);
     });

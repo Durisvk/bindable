@@ -1,3 +1,3 @@
 export { guard, Guard, GuardMeta, GuardMetaData } from './guard';
-export { hidden } from './private';
+export { hidden } from './hidden';
 export { applyGuards } from './applyGuards';
