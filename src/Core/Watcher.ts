@@ -19,16 +19,16 @@ export class Watcher {
         }
     }
 
-    private createNestedProxyObject(obj : any, notifyChanged : NotifyChanged, path : string = '') : any {
+    private createNestedProxyObject(obj : any, notifyChanged : NotifyChanged, path : string = '', parent = null) : any {
         Object.keys(obj).forEach((key) => {
-            if(typeof obj[key] === 'object' && key !== META_KEY) {
-                obj[key] = this.createNestedProxyObject(obj[key], notifyChanged, path + key + '.');
+            if((_.isPlainObject(obj[key]) || _.isArray(obj[key])) && key !== META_KEY) {
+                obj[key] = this.createNestedProxyObject(obj[key], notifyChanged, path + key + '.', obj);
             }
         });
-        return this.createProxyObject(obj, notifyChanged, path);
+        return this.createProxyObject(obj, notifyChanged, path, parent);
     }
 
-    private createProxyObject(obj : any, notifyChanged : NotifyChanged, path : string = '') {
+    private createProxyObject(obj : any, notifyChanged : NotifyChanged, path : string = '', parent = null) {
         return new Proxy(obj, {
             set: (target, key, value, receiver) => {
                 const nPath = path + key.toString();
@@ -37,15 +37,8 @@ export class Watcher {
 
                 if(key !== META_KEY) {
                     const change : ChangedData = { target, key, oldValue, newValue: value, path: nPath };
-                    
-                    let metaGuard : GuardMeta;
-                    if(target[META_KEY]) {
-                        metaGuard = _.find(target[META_KEY].guards, (g : GuardMeta) => g.key === key);
-                    }
-                    
-                    if(metaGuard) {
-                        change.guard = metaGuard.guard;
-                    }
+                    this.applyMetaGuardToChange(change, target, key, parent);
+
                     notifyChanged(change);
                 }
                 return true;
@@ -54,6 +47,19 @@ export class Watcher {
                 return target[key];
             }
         });
+    }
+
+    private applyMetaGuardToChange(change : ChangedData, target : any, key : PropertyKey, parent = null) {
+        let metaGuard = null;
+        if(target[META_KEY]) {
+            metaGuard = _.find(target[META_KEY].guards, (g : GuardMeta) => g.key === key);
+        } else if(parent && parent[META_KEY]) {
+            metaGuard = _.find(parent[META_KEY].guards, (g : GuardMeta) => g.key === key);
+        }
+
+        if(metaGuard) {
+            change.guard = metaGuard.guard;
+        }
     }
 
     public getChanges() : ChangedData[] {

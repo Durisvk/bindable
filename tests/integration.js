@@ -6,26 +6,43 @@ const Bindable_1 = require("../src/Core/Bindable");
 const Guards_1 = require("../src/Guards");
 describe('Integration tests', () => {
     const mocha = this;
-    const port = 9871;
+    const port = 9870;
     const defaultOptions = {
         websocket: {
             port,
         },
+        runtime: {
+            tickInterval: 1,
+        },
     };
+    let testNumber = 1;
+    let globalBindable = null;
+    let globalWs = null;
+    beforeEach(() => console.time(testNumber.toString()));
+    afterEach(() => {
+        console.timeEnd(testNumber.toString());
+        testNumber++;
+        if (globalBindable) {
+            globalBindable.destroy();
+        }
+        if (globalWs) {
+            globalWs.close();
+        }
+    });
     function setupBindable(model, options = defaultOptions) {
         return new Bindable_1.Bindable(model, options);
     }
     function clientConnect(onMessage) {
         return new Promise((resolve, reject) => {
             let counter = 0;
-            const ws = new WebSocket('ws://localhost:' + port, {});
-            ws.on('message', (data) => onMessage(JSON.parse(data), ws, ++counter));
-            ws.on('open', resolve.bind(mocha, ws));
-            ws.on('error', reject);
+            globalWs = new WebSocket('ws://localhost:' + port, {});
+            globalWs.on('message', (data) => onMessage(JSON.parse(data), globalWs, ++counter));
+            globalWs.on('open', resolve.bind(mocha, globalWs));
+            globalWs.on('error', reject);
         });
     }
     it('should create simple bindable without errors', () => {
-        const b = setupBindable({
+        globalBindable = setupBindable({
             someStuff: 'this is just a stuff',
             someObjStuff: {
                 thisIsArray: [
@@ -35,16 +52,15 @@ describe('Integration tests', () => {
                 ]
             }
         });
-        b.destroy();
     });
     it('should do some basic changes', (done) => {
-        const b = setupBindable({
+        globalBindable = setupBindable({
             obj: {
                 counter: 0,
             },
             counter: 0,
         });
-        const model = b.getProxy();
+        const model = globalBindable.getProxy();
         clientConnect((data, ws, nthCall) => {
             switch (nthCall) {
                 case 1:
@@ -57,8 +73,6 @@ describe('Integration tests', () => {
                     chai_1.expect(data.obj).to.have.key('counter');
                     chai_1.expect(data.obj.counter).to.equal(1);
                 default:
-                    ws.close();
-                    b.destroy();
                     done();
             }
         })
@@ -66,13 +80,13 @@ describe('Integration tests', () => {
             .catch(done);
     });
     it('should change more than one data at once', (done) => {
-        const b = setupBindable({
+        globalBindable = setupBindable({
             obj: {
                 counter: 0,
             },
             counter: 0,
         });
-        const model = b.getProxy();
+        const model = globalBindable.getProxy();
         clientConnect((data, ws, nthCall) => {
             switch (nthCall) {
                 case 1:
@@ -81,8 +95,6 @@ describe('Integration tests', () => {
                     chai_1.expect(data.obj).to.have.key('counter');
                     chai_1.expect(data.obj.counter).to.equal(1);
                 default:
-                    ws.close();
-                    b.destroy();
                     done();
             }
         })
@@ -93,13 +105,13 @@ describe('Integration tests', () => {
             .catch(done);
     });
     it('should protect the data with simple hidden guard', (done) => {
-        const b = setupBindable({
+        globalBindable = setupBindable({
             private: {
                 counter: 0,
             },
             counter: 0,
         });
-        const model = b.getProxy();
+        const model = globalBindable.getProxy();
         Guards_1.applyGuards(model.private, 'counter', Guards_1.hidden);
         clientConnect((data, ws, nthCall) => {
             switch (nthCall) {
@@ -107,14 +119,44 @@ describe('Integration tests', () => {
                     chai_1.expect(data).to.have.key('counter');
                     chai_1.expect(data.counter).to.equal(1);
                 default:
-                    ws.close();
-                    b.destroy();
                     done();
             }
         })
             .then(ws => {
             model.counter++;
             model.private.counter++;
+        })
+            .catch(done);
+    });
+    it('should protect the data with hidden guard on upper key of deep nested object', (done) => {
+        globalBindable = setupBindable({
+            private: {
+                some: {
+                    deep: {
+                        nested: {
+                            obj: {
+                                counter: 0,
+                            }
+                        }
+                    }
+                }
+            },
+            counter: 0,
+        });
+        const model = globalBindable.getProxy();
+        Guards_1.applyGuards(model, 'private', Guards_1.hidden);
+        clientConnect((data, ws, nthCall) => {
+            switch (nthCall) {
+                case 1:
+                    chai_1.expect(data).to.have.key('counter');
+                    chai_1.expect(data.counter).to.equal(1);
+                default:
+                    done();
+            }
+        })
+            .then(ws => {
+            model.counter++;
+            model.private.some.deep.nested.obj.counter++;
         })
             .catch(done);
     });

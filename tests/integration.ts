@@ -8,13 +8,33 @@ import { guard, hidden, applyGuards } from '../src/Guards'
 
 describe('Integration tests', () => {
     const mocha = this;
-    const port = 9871;
+    const port = 9870;
 
     const defaultOptions : BindableOptions = {
         websocket: {
             port,
         },
+        runtime: {
+            tickInterval: 1,
+        },
     }
+
+    let testNumber : number = 1;
+    let globalBindable : Bindable<any> = null;
+    let globalWs : WebSocket = null;
+
+    beforeEach(() => console.time(testNumber.toString()));
+
+    afterEach(() => {
+        console.timeEnd(testNumber.toString());
+        testNumber++;
+        if(globalBindable) {
+            globalBindable.destroy();
+        }
+        if(globalWs) {
+            globalWs.close();
+        }
+    })
 
     function setupBindable(model : any, options : BindableOptions = defaultOptions) : Bindable<any> {
         return new Bindable<any>(model, options);
@@ -23,16 +43,16 @@ describe('Integration tests', () => {
     function clientConnect(onMessage : (data : any, ws : WebSocket, nthCall : number) => void) {
         return new Promise((resolve, reject) => {
             let counter = 0;
-            const ws = new WebSocket('ws://localhost:' + port, {});
-            ws.on('message', (data : any) =>
-                onMessage(JSON.parse(data), ws, ++counter));
-            ws.on('open', resolve.bind(mocha, ws));
-            ws.on('error', reject);
+            globalWs = new WebSocket('ws://localhost:' + port, {});
+            globalWs.on('message', (data : any) =>
+                onMessage(JSON.parse(data), globalWs, ++counter));
+            globalWs.on('open', resolve.bind(mocha, globalWs));
+            globalWs.on('error', reject);
         })
     }
 
     it('should create simple bindable without errors', () => {
-        const b : Bindable<any> = setupBindable({
+        globalBindable = setupBindable({
             someStuff: 'this is just a stuff',
             someObjStuff: {
                 thisIsArray: [
@@ -42,17 +62,16 @@ describe('Integration tests', () => {
                 ]
             }
         });
-        b.destroy();
     });
 
     it('should do some basic changes', (done) => {
-        const b : Bindable<any> = setupBindable({
+        globalBindable = setupBindable({
             obj: {
                 counter: 0,
             },
             counter: 0,
         });
-        const model = b.getProxy();
+        const model = globalBindable.getProxy();
         clientConnect((data : any, ws : WebSocket, nthCall : number) => {
             switch(nthCall) {
                 case 1:
@@ -65,8 +84,6 @@ describe('Integration tests', () => {
                     expect(data.obj).to.have.key('counter');
                     expect(data.obj.counter).to.equal(1);
                 default:
-                    ws.close();
-                    b.destroy();
                     done();
             }
         })
@@ -75,13 +92,13 @@ describe('Integration tests', () => {
     });
 
     it('should change more than one data at once', (done) => {
-        const b : Bindable<any> = setupBindable({
+        globalBindable = setupBindable({
             obj: {
                 counter: 0,
             },
             counter: 0,
         });
-        const model = b.getProxy();
+        const model = globalBindable.getProxy();
         clientConnect((data : any, ws : WebSocket, nthCall : number) => {
             switch(nthCall) {
                 case 1:
@@ -90,8 +107,6 @@ describe('Integration tests', () => {
                     expect(data.obj).to.have.key('counter');
                     expect(data.obj.counter).to.equal(1);
                 default:
-                    ws.close();
-                    b.destroy();
                     done();
             }
         })
@@ -104,14 +119,14 @@ describe('Integration tests', () => {
 
     it('should protect the data with simple hidden guard', (done) => {
 
-        const b : Bindable<any> = setupBindable({
+        globalBindable = setupBindable({
             private: {
                 counter: 0,
             },
             counter: 0,
         });
 
-        const model = b.getProxy();
+        const model = globalBindable.getProxy();
         applyGuards(model.private, 'counter', hidden);
         clientConnect((data : any, ws : WebSocket, nthCall : number) => {
             switch(nthCall) {
@@ -119,14 +134,47 @@ describe('Integration tests', () => {
                     expect(data).to.have.key('counter');
                     expect(data.counter).to.equal(1);
                 default:
-                    ws.close();
-                    b.destroy();
                     done();
             }
         })
         .then(ws => {
             model.counter++;
             model.private.counter++;
+        })
+        .catch(done);
+    });
+
+
+    it('should protect the data with hidden guard on upper key of deep nested object', (done) => {
+        globalBindable = setupBindable({
+            private: {
+                some: {
+                    deep: {
+                        nested: {
+                            obj: {
+                                counter: 0,
+                            }
+                        }
+                    }
+                }
+            },
+            counter: 0,
+        });
+
+        const model = globalBindable.getProxy();
+        applyGuards(model, 'private', hidden);
+        clientConnect((data : any, ws : WebSocket, nthCall : number) => {
+            switch(nthCall) {
+                case 1:
+                    expect(data).to.have.key('counter');
+                    expect(data.counter).to.equal(1);
+                default:
+                    done();
+            }
+        })
+        .then(ws => {
+            model.counter++;
+            model.private.some.deep.nested.obj.counter++;
         })
         .catch(done);
     });
