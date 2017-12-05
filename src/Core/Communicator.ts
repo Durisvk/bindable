@@ -3,8 +3,9 @@ import * as _ from "lodash";
 import { ChangedData } from "./Watcher";
 import { WebSocket } from "./WebSocket";
 import * as WebSocket_ from "ws";
-import { DIRECTION } from "../Guards/guard";
+import { DIRECTION, ValueInterpretation } from "../Attributes/meta";
 import Obj from "../Utils/Obj";
+import { protectWithGuards } from "../Attributes/Guards/guard";
 
 export class Communicator {
 
@@ -27,13 +28,8 @@ export class Communicator {
     }
 
     private applyChange(model: any, id: string, ws: WebSocket_, obj: any, change: ChangedData) {
-        if (change.guard) {
-            const g: boolean | Promise<boolean> = change.guard(model, id, ws, { direction: DIRECTION.OUT });
-            if (g instanceof Promise) {
-                // TODO: add asynchronous functionality for guards
-            } else if (!g) {
-                return;
-            }
+        if (protectWithGuards(model, id, ws, obj, change)) {
+            return;
         }
 
         Obj.walkAndCreateAPath(obj, change.path, (parent: any, key: string | symbol) => {

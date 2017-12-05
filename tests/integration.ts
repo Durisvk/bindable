@@ -4,7 +4,7 @@ import * as WebSocket from "ws";
 
 
 import { Bindable, BindableOptions } from "../src/Core/Bindable";
-import { guard, hidden, applyGuards } from "../src/Guards";
+import { guard, hidden, applyGuards } from "../src/Attributes/Guards";
 
 describe("Integration tests", () => {
     const port = 9870;

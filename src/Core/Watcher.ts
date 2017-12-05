@@ -1,7 +1,8 @@
 import SerializableUtils from "../Utils/Serializable";
-import { META_KEY, GuardMeta, Guard } from "../Guards/guard";
 
 import * as _ from "lodash";
+import { META_KEY } from "../Attributes/meta";
+import { Guard, GuardMeta, GuardMetaData } from "../Attributes/Guards/guard";
 
 export interface ChangedData {
     target: any;
@@ -9,7 +10,7 @@ export interface ChangedData {
     oldValue: any;
     newValue: any;
     path: string;
-    guard?: Guard;
+    guards?: { guard: Guard, metaData: GuardMetaData }[];
 }
 type NotifyChanged = (data: ChangedData) => any;
 
@@ -45,15 +46,15 @@ export class Watcher {
     }
 
     private applyMetaGuardToChange(change: ChangedData, target: any, key: PropertyKey, parent: any = undefined) {
-        let metaGuard = undefined;
+        let metaGuards: GuardMeta[] = undefined;
         if (target[META_KEY]) {
-            metaGuard = _.find(target[META_KEY].guards, (g: GuardMeta) => g.key === key);
+            metaGuards = _.filter(target[META_KEY].guards, (g: GuardMeta) => g.key === key);
         } else if (parent && parent[META_KEY]) {
-            metaGuard = _.find(parent[META_KEY].guards, (g: GuardMeta) => g.key === key);
+            metaGuards = _.filter(parent[META_KEY].guards, (g: GuardMeta) => g.key === key);
         }
 
-        if (metaGuard) {
-            change.guard = metaGuard.guard;
+        if (metaGuards) {
+            change.guards = _.map(metaGuards, (g: GuardMeta) => ({ guard: g.guard, metaData: g.metaData }));
         }
     }
 

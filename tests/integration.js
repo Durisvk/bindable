@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chai_1 = require("chai");
 const WebSocket = require("ws");
 const Bindable_1 = require("../src/Core/Bindable");
-const Guards_1 = require("../src/Guards");
+const Guards_1 = require("../src/Attributes/Guards");
 describe("Integration tests", () => {
     const port = 9870;
     const defaultOptions = {
