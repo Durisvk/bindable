@@ -1,39 +1,38 @@
-import * as _ from 'lodash';
-import { Runtime } from './Runtime';
-import { Watcher } from './Watcher';
-import { WebSocket, ServerOptions } from './WebSocket';
-import { Actor } from './Actor';
+import * as _ from "lodash";
+import { Runtime } from "./Runtime";
+import { Watcher } from "./Watcher";
+import { WebSocket, ServerOptions } from "./WebSocket";
+import { Communicator } from "./Communicator";
 
-export type BindableOptions = {
-    runtime? : {
-        tickInterval? : number,
-    },
-    websocket? : ServerOptions,
+export interface BindableOptions {
+    runtime?: {
+        tickInterval?: number,
+    };
+    websocket?: ServerOptions;
 }
 
-const defaultOptions : BindableOptions = {
+const defaultOptions: BindableOptions = {
     runtime: {
         tickInterval: 500,
     },
     websocket: {
         port: 8000,
     }
-}
+};
 
 export class Bindable<T extends object> {
 
-    private options : BindableOptions;
+    private options: BindableOptions;
 
-    private model : T;
+    private model: T;
 
-    
     // Internals
-    private runtime : Runtime;
-    private watcher : Watcher;
-    private websocket : WebSocket;
-    private actor : Actor;
+    private runtime: Runtime;
+    private watcher: Watcher;
+    private websocket: WebSocket;
+    private actor: Communicator;
 
-    public constructor(model : T, options? : BindableOptions) {
+    public constructor(model: T, options?: BindableOptions) {
         this.options = _.merge({}, defaultOptions, options);
         this.model = model;
         this.init();
@@ -41,13 +40,13 @@ export class Bindable<T extends object> {
 
     private init() {
         this.websocket = new WebSocket(this.options.websocket);
-        this.actor = new Actor(this.websocket);
+        this.actor = new Communicator(this.websocket);
         this.watcher = new Watcher(this.model);
         this.runtime = new Runtime(this.options.runtime);
 
-        this.runtime.everyTick((dt : number, i : number) => {
+        this.runtime.everyTick((dt?: number, i?: number) => {
             const changes = this.watcher.getChanges();
-            if(changes.length > 0) {
+            if (changes.length > 0) {
                 this.actor.flush(changes, this.model);
                 this.watcher.clearChanges();
             }
@@ -56,16 +55,16 @@ export class Bindable<T extends object> {
         this.runtime.start();
     }
 
-    public destroy() : void {
+    public destroy(): void {
         this.runtime.stop();
         this.websocket.destroy();
     }
 
-    public getModel() : T {
+    public getModel(): T {
         return this.model;
     }
 
-    public getProxy() : any {
+    public getProxy(): any {
         return this.watcher.getProxy();
     }
 }

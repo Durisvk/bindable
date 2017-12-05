@@ -3,3 +3,14 @@ node_js:
   - "node"
 before_script:
   - npm install -g gulp-cli
+script:
+  - npm tslint
+  - npm test
+after-failure:
+  - RED='\033[0;31m'
+  - NC='\033[0m'
+  - echo -e "${RED}Sorry, you must fix the errors that were revealed during tslint or tests.${NC}"
+after-success:
+  - GREEN='\033[0;32m'
+  - NC='\033[0m'
+  - echo -e "${GREEN}You have successfully passed the tslint and tests.${NC}"

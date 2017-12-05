@@ -1,7 +1,7 @@
 var gulp = require('gulp');
 var ts = require('gulp-typescript');
 var mocha = require('gulp-mocha');
-var sourcemaps = require('gulp-sourcemaps');
+var tslint = require("gulp-tslint");
 
 var tsProjectSrc = ts.createProject('./tsconfig.json');
 gulp.task('build', function() {
@@ -30,7 +30,7 @@ gulp.task('testAfterBuild', ['build'], function() {
     }));
 });
 
-gulp.task('testonly', function() {
+gulp.task('test', function() {
     return gulp.src('./tests/**/*.ts', { base: '.' })
     /*transpile*/
     .pipe(tsProjectTest())
@@ -41,8 +41,15 @@ gulp.task('testonly', function() {
         reporter: 'progress',
         require: ['ts-node/register']
     }));
-})
+});
+
+gulp.task("tslint", () =>
+    gulp.src(["./src/**/*.ts", "./tests/**/*.ts"])
+    .pipe(tslint({
+        configuration: "./tslint.json"
+    }))
+    .pipe(tslint.report())
+);
 
 /* single command to hook into VS Code */
 gulp.task('dev', ['build', 'testAfterBuild']);
-gulp.task('test', ['testonly']);
