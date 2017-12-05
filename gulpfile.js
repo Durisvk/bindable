@@ -11,24 +11,11 @@ gulp.task('build', function() {
     /*transpile*/
     .pipe(tsProjectSrc())
     //.pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest('dist/'))
+    .pipe(gulp.dest('dist/'));
 });
 
 //optional - use a tsconfig file
 var tsProjectTest = ts.createProject('./tsconfig.json');
-gulp.task('testAfterBuild', ['build'], function() {
-    //find test code - note use of 'base'
-    return gulp.src('./tests/**/*.ts', { base: '.' })
-    /*transpile*/
-    .pipe(tsProjectTest())
-    /*flush to disk*/
-    .pipe(gulp.dest('.'))
-    /*execute tests*/
-    .pipe(mocha({
-        reporter: 'progress',
-        require: ['ts-node/register']
-    }));
-});
 
 gulp.task('test', function() {
     return gulp.src('./tests/**/*.ts', { base: '.' })
@@ -50,6 +37,3 @@ gulp.task("tslint", () =>
     }))
     .pipe(tslint.report())
 );
-
-/* single command to hook into VS Code */
-gulp.task('dev', ['build', 'testAfterBuild']);
